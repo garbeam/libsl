@@ -10,6 +10,8 @@
 Drw *
 drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h) {
 	Drw *drw = (Drw *)calloc(1, sizeof(Drw));
+	if(!drw)
+		return NULL;
 	drw->dpy = dpy;
 	drw->screen = screen;
 	drw->win = win;
@@ -47,6 +49,8 @@ drw_font_create(Drw *drw, const char *fontname) {
 	if(!drw)
 		return NULL;
 	font = (Fnt *)calloc(1, sizeof(Fnt));
+	if(!font)
+		return NULL;
 	font->set = XCreateFontSet(drw->dpy, fontname, &missing, &n, &def);
 	if(missing) {
 		while(n--)
@@ -66,8 +70,10 @@ drw_font_create(Drw *drw, const char *fontname) {
 	}
 	else {
 		if(!(font->xfont = XLoadQueryFont(drw->dpy, fontname))
-		&& !(font->xfont = XLoadQueryFont(drw->dpy, "fixed")))
-			die("error, cannot load font: '%s'\n", fontname);
+		&& !(font->xfont = XLoadQueryFont(drw->dpy, "fixed"))) {
+			free(font);
+			return NULL;
+		}
 		font->ascent = font->xfont->ascent;
 		font->descent = font->xfont->descent;
 	}
@@ -88,10 +94,16 @@ drw_font_free(Drw *drw, Fnt *font) {
 
 Clr *
 drw_clr_create(Drw *drw, const char *clrname) {
-	Clr *clr = (Clr *)calloc(1, sizeof(Clr));
-	Colormap cmap = DefaultColormap(drw->dpy, drw->screen);
+	Clr *clr;
+	Colormap cmap;
 	XColor color;
 
+	if(!drw)
+		return NULL;
+	clr = (Clr *)calloc(1, sizeof(Clr));
+	if(!clr)
+		return NULL;
+	cmap = DefaultColormap(drw->dpy, drw->screen);
 	if(!XAllocNamedColor(drw->dpy, cmap, clrname, &color, &color))
 		die("error, cannot allocate color '%s'\n", clrname);
 	clr->rgb = color.pixel;
@@ -100,6 +112,8 @@ drw_clr_create(Drw *drw, const char *clrname) {
 
 void
 drw_clr_free(Drw *drw, Clr *clr) {
+	if(!drw)
+		return;
 	if(!clr)
 		return;
 	free(clr);
@@ -107,23 +121,20 @@ drw_clr_free(Drw *drw, Clr *clr) {
 
 void
 drw_setfont(Drw *drw, Fnt *font) {
-	if(!drw)
-		return;
-	drw->font = font;
+	if(drw)
+		drw->font = font;
 }
 
 void
 drw_setfg(Drw *drw, Clr *clr) {
-	if(!drw) 
-		return;
-	drw->fg = clr;
+	if(drw) 
+		drw->fg = clr;
 }
 
 void
 drw_setbg(Drw *drw, Clr *clr) {
-	if(!drw)
-		return;
-	drw->bg = clr;
+	if(drw)
+		drw->bg = clr;
 }
 
 void
